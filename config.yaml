@@ -1,0 +1,23 @@
+# Gold Analyst Configuration
+
+# Risk Tiers for Position Sizing
+risk_tiers:
+  Conservative: "0.5% - 1.5%"
+  Moderate: "1.5% - 3.5%"
+  Aggressive: "3.5% - 7.0%"
+
+# Confidence Thresholds for Action Mapping
+# If confidence is below these, the action defaults to HOLD
+mapping_thresholds:
+  confidence_buy: 60.0
+  confidence_sell: 60.0
+
+# Evaluation Thresholds
+# Minimum percentage change required to consider a Buy/Sell successful
+evaluation:
+  success_threshold_pct: 0.2  # 0.2% change required
+
+# Data Provider Settings
+providers:
+  cache_ttl_seconds: 30
+  metals_api_base_url: "https://metals-api.com/api"

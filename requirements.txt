@@ -1,0 +1,11 @@
+streamlit
+yfinance
+google-generativeai
+python-dotenv
+pyyaml
+requests
+pandas
+plotly
+pytest
+flake8
+watchdog
