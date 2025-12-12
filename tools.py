@@ -1,5 +1,5 @@
 import yfinance as yf
-from langchain_community.tools import DuckDuckGoSearchRun
+
 
 import re
 
@@ -48,9 +48,10 @@ def fetch_gold_price():
         except Exception:
             pass
 
-    # If all failed, return error
+    # If all failed, ensure we return a valid structure with 0 values
     if current_price_oz == 0:
-        return {"error": "Failed to fetch gold price from all sources."}
+        source = "Data Unavailable"
+        # We proceed to calculate with 0 so the UI doesn't break
 
     # Conversions
     # 1 Troy Ounce = 31.1034768 grams
@@ -126,30 +127,12 @@ def fetch_gold_price():
         }
     }
 
-from langchain_community.tools import DuckDuckGoSearchResults
-
 def fetch_market_news(query="Gold price analysis market news today"):
     """
     Searches for the latest market news using DuckDuckGo.
     Returns a list of dictionaries with 'title', 'link', and 'source'.
     """
-    search = DuckDuckGoSearchResults(backend="news")
     try:
-        # results is a string of "[snippet](link), [snippet](link)"
-        # We need to parse it or use a better tool. 
-        # Actually, DuckDuckGoSearchResults returns a string formatted list.
-        # Let's use the 'ddg-news' backend if possible or just parse the default output.
-        # For simplicity and reliability with langchain community, let's use the default and parse.
-        
-        results_str = search.invoke(query)
-        
-        # Parse the string results which are usually in format: 
-        # [Title](Link), [Title](Link) ... or similar depending on version.
-        # A more robust way is to use the python package directly if langchain is messy,
-        # but let's try to parse the standard output first.
-        # Actually, let's use the 'duckduckgo_search' library directly for cleaner JSON if installed.
-        # It is installed as a dependency.
-        
         from duckduckgo_search import DDGS
         news_list = []
         with DDGS() as ddgs:
@@ -162,11 +145,9 @@ def fetch_market_news(query="Gold price analysis market news today"):
                     "source": item.get("source"),
                     "date": item.get("date")
                 })
-                
         return news_list
-        
     except Exception as e:
-        return [{"title": "Error fetching news", "source": "System", "link": "#", "error": str(e)}]
+        return [{"title": "News Unavailable", "source": "System", "link": "#", "error": str(e)}]
 
 def fetch_historical_data(period="max"):
     """

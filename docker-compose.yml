@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  gold-analyst:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gold-analyst-app
+    ports:
+      - "8503:8501" # Mapping to host port 8503 to avoid conflict with local dev instance
+    volumes:
+      - ./:/app
+      - /app/venv # Prevent local venv from overwriting container's python path if needed (though venv is dockerignored usually better to just ignore it)
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8501/_stcore/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3

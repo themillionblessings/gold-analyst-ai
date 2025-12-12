@@ -9,3 +9,8 @@ plotly
 pytest
 flake8
 watchdog
+langchain-google-genai
+langchain
+duckduckgo-search==6.3.2
+langchain-community
+pydantic>=2.0
