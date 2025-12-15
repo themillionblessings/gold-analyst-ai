@@ -1,20 +1,54 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import PriceCard from "./components/PriceCard";
 import AnalysisBlock from "./components/AnalysisBlock";
 import NewsFeed from "./components/NewsFeed";
+import MarketPrices from "./components/MarketPrices";
+import GoldCalculator from "./components/GoldCalculator";
+
+// Define the full price data interface matching backend
+interface PriceData {
+  asset: string;
+  price_oz_24k: number;
+  daily_change_oz: number;
+  percent_change: string;
+  rates: Record<string, number>;
+  usd: Record<string, number>;
+  egypt: Record<string, number>;
+  uae: Record<string, number>;
+}
 
 export default function Home() {
+  const [priceData, setPriceData] = useState<PriceData | null>(null);
+
+  useEffect(() => {
+    async function fetchPrice() {
+      try {
+        const res = await fetch("http://localhost:8000/price/GC=F");
+        const json = await res.json();
+        setPriceData(json);
+      } catch (err) {
+        console.error("Failed to fetch price data", err);
+      }
+    }
+    fetchPrice();
+    const interval = setInterval(fetchPrice, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans selection:bg-emerald-500/30">
 
       {/* Navbar */}
-      <nav className="border-b border-slate-800/60 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-bold text-xl tracking-tight text-white flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]"></span>
+          <div className="font-bold text-xl tracking-tight text-slate-900 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
             GOLD ANALYST AI
           </div>
-          <div className="text-xs font-medium text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-            v2.0 Beta
+          <div className="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+            v2.1 Light
           </div>
         </div>
       </nav>
@@ -24,25 +58,36 @@ export default function Home() {
 
         {/* Hero Section */}
         <div className="space-y-2 text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900">
             Smart Market Intelligence
           </h1>
-          <p className="text-slate-400 text-lg">Real-time gold tracking powered by Gemini 2.5 Flash.</p>
+          <p className="text-slate-500 text-lg">Real-time gold tracking powered by Gemini 2.5 Flash.</p>
         </div>
 
-        {/* Top Data Row */}
+        {/* Top Data Row: Price Card + Calculator */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
-            <PriceCard />
+            {/* Pass data to PriceCard (requires refactor of PriceCard to accept props) */}
+            <PriceCard data={priceData} />
+          </div>
+          <div className="md:col-span-1">
+            <GoldCalculator priceData={priceData} />
+          </div>
+        </div>
+
+        {/* Extended Market Prices Table */}
+        <div>
+          <MarketPrices priceData={priceData} />
+        </div>
+
+        {/* AI Analysis & News */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <AnalysisBlock />
           </div>
           <div className="md:col-span-1">
             <NewsFeed />
           </div>
-        </div>
-
-        {/* Main Analysis Block */}
-        <div className="h-full">
-          <AnalysisBlock />
         </div>
 
       </main>

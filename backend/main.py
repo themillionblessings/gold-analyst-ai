@@ -15,17 +15,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-engine = GoldAnalystEngine()
+ai_engine = GoldAnalystEngine()
 
 from sqlalchemy import text
-from backend.database import engine
+from backend.database import engine as db_engine
 
 # ... (existing imports)
 
 @app.get("/")
 def read_root():
     try:
-        with engine.connect() as connection:
+        with db_engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         db_status = "Connected"
     except Exception as e:
@@ -52,7 +52,7 @@ def analyze_market(request: AnalysisRequest):
     # But since we defined Any in request, we can pass it through if compatible
     # The current engine expects gld_data and xau_data
     
-    result = engine.analyze(request.gld_data, request.xau_data)
+    result = ai_engine.analyze(request.gld_data, request.xau_data)
     
     if result and "rationale_brief" in result:
         return result

@@ -20,8 +20,8 @@ export default function NewsFeed() {
     }, []);
 
     return (
-        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl">
-            <h2 className="text-xl font-semibold text-white mb-6">Market News</h2>
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Market News</h2>
             <div className="space-y-4">
                 {news.length > 0 ? (
                     news.slice(0, 3).map((item, idx) => (
@@ -30,14 +30,14 @@ export default function NewsFeed() {
                             href={item.link}
                             target="_blank"
                             rel="noreferrer"
-                            className="block p-4 rounded-xl bg-slate-900/50 border border-slate-700/30 hover:border-slate-500 transition-colors group"
+                            className="block p-4 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-300 transition-colors group"
                         >
-                            <div className="text-xs text-emerald-400 font-medium mb-1 uppercase tracking-wide">{item.source || "News"}</div>
-                            <div className="text-slate-200 font-medium group-hover:text-white transition-colors line-clamp-2">{item.title}</div>
+                            <div className="text-xs text-blue-600 font-medium mb-1 uppercase tracking-wide">{item.source || "News"}</div>
+                            <div className="text-slate-800 font-medium group-hover:text-blue-700 transition-colors line-clamp-2">{item.title}</div>
                         </a>
                     ))
                 ) : (
-                    <div className="text-slate-500 text-sm">Loading news...</div>
+                    <div className="text-slate-400 text-sm">Loading news...</div>
                 )}
             </div>
         </div>
