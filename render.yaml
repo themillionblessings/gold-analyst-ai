@@ -1,0 +1,39 @@
+services:
+  # 1. Database
+  - type: psql
+    name: gold-analyst-db
+    env: docker
+    plan: free
+
+  # 2. Backend API
+  - type: web
+    name: gold-analyst-backend
+    env: docker
+    plan: free
+    rootDir: .
+    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gold-analyst-db
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port 10000
+
+  # 3. Frontend Web Service
+  - type: web
+    name: gold-analyst-frontend
+    env: docker
+    plan: free
+    rootDir: .
+    dockerContext: .
+    dockerfilePath: frontend/Dockerfile
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: gold-analyst-backend
+          envVar: RENDER_EXTERNAL_URL
+    startCommand: node server.js
