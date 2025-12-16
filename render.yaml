@@ -20,7 +20,6 @@ services:
           property: connectionString
       - key: GOOGLE_API_KEY
         sync: false
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port 10000
 
   # 2. Frontend Web Service
   - type: web
@@ -35,5 +34,4 @@ services:
         fromService:
           type: web
           name: gold-analyst-backend
-          envVar: RENDER_EXTERNAL_URL
-    startCommand: node server.js
+          property: url
