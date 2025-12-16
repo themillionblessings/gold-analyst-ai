@@ -13,7 +13,7 @@ export default function NewsFeed() {
     const [news, setNews] = useState<NewsItem[]>([]);
 
     useEffect(() => {
-        fetch("http://localhost:8000/news")
+        fetch("/api/proxy/news")
             .then((res) => res.json())
             .then((data) => setNews(data))
             .catch((err) => console.error(err));

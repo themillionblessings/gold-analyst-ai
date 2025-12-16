@@ -26,7 +26,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchPrice() {
       try {
-        const res = await fetch("http://localhost:8000/price/GC=F");
+        const res = await fetch("/api/proxy/price/GC=F");
         const json = await res.json();
         setPriceData(json);
       } catch (err) {
