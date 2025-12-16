@@ -15,3 +15,19 @@ https://nextjs.org/telemetry
  ✓ Ready in 891ms
  GET / 200 in 2.8s (compile: 2.7s, render: 109ms)
  ✓ Compiled in 114ms
+ GET / 200 in 84ms (compile: 36ms, render: 48ms)
+ GET / 200 in 39ms (compile: 4ms, render: 34ms)
+ GET / 200 in 39ms (compile: 5ms, render: 34ms)
+ GET / 200 in 32ms (compile: 4ms, render: 27ms)
+ GET / 200 in 29ms (compile: 1746µs, render: 27ms)
+ GET / 200 in 26ms (compile: 1479µs, render: 24ms)
+ GET / 200 in 24ms (compile: 1585µs, render: 22ms)
+ GET / 200 in 98ms (compile: 1912µs, render: 96ms)
+ GET / 200 in 25ms (compile: 2ms, render: 23ms)
+ GET / 200 in 22ms (compile: 2ms, render: 20ms)
+ GET / 200 in 26ms (compile: 3ms, render: 23ms)
+npm notice
+npm notice New minor version of npm available! 11.6.2 -> 11.7.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.7.0
+npm notice To update run: npm install -g npm@11.7.0
+npm notice

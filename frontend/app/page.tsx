@@ -6,6 +6,7 @@ import AnalysisBlock from "./components/AnalysisBlock";
 import NewsFeed from "./components/NewsFeed";
 import MarketPrices from "./components/MarketPrices";
 import GoldCalculator from "./components/GoldCalculator";
+import DealAnalyzer from "./components/DealAnalyzer";
 
 // Define the full price data interface matching backend
 interface PriceData {
@@ -75,9 +76,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Extended Market Prices Table */}
-        <div>
-          <MarketPrices priceData={priceData} />
+        {/* Market Data & Tools Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <MarketPrices priceData={priceData} />
+          </div>
+          <div className="md:col-span-1">
+            <DealAnalyzer priceData={priceData} />
+          </div>
         </div>
 
         {/* AI Analysis & News */}
