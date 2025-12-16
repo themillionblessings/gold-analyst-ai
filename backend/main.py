@@ -35,12 +35,17 @@ def read_root():
 
 @app.get("/price/{ticker}", response_model=PriceResponse)
 def get_price(ticker: str):
-    # Currently ignoring ticker and fetching generic gold price as per original logic
-    # In future, we can route specifically based on ticker
-    data = fetch_gold_price()
-    if data and "error" in data:
-        raise HTTPException(status_code=500, detail=data["error"])
-    return data
+    try:
+        # Currently ignoring ticker and fetching generic gold price as per original logic
+        data = fetch_gold_price()
+        if data and "error" in data:
+            raise HTTPException(status_code=500, detail=data["error"])
+        return data
+    except Exception as e:
+        import traceback
+        error_msg = f"Backend Error: {str(e)} | {traceback.format_exc()}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @app.get("/news", response_model=List[NewsItem])
 def get_news():
