@@ -33,19 +33,34 @@ def read_root():
     
     return {"message": "Gold Analyst AI API is running", "database": db_status}
 
-@app.get("/price/{ticker}", response_model=PriceResponse)
+@app.get("/price/{ticker}")
 def get_price(ticker: str):
+    from fastapi.responses import JSONResponse
     try:
-        # Currently ignoring ticker and fetching generic gold price as per original logic
         data = fetch_gold_price()
+        # Validation check manually
         if data and "error" in data:
-            raise HTTPException(status_code=500, detail=data["error"])
+             # Just return it, don't 500
+             return JSONResponse(status_code=500, content={"detail": data["error"]})
         return data
     except Exception as e:
         import traceback
-        error_msg = f"Backend Error: {str(e)} | {traceback.format_exc()}"
-        print(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
+        error_msg = f"Backend Error: {str(e)}"
+        print(f"CRITICAL ERROR: {error_msg}\n{traceback.format_exc()}")
+        
+        # Fallback Data (Safe Mode) to prevent UI crash
+        safe_data = {
+            "asset": "Gold (Safe Mode)",
+            "price_oz_24k": 0.0,
+            "daily_change_oz": 0.0,
+            "percent_change": "0.0%",
+            "rates": {"USD/EGP": 50.0, "USD/AED": 3.67},
+            "usd": {"Troy Ounce": 0.0, "24k": 0.0, "21k": 0.0, "18k": 0.0},
+            "egypt": {"Troy Ounce": 0.0, "Gold Coin (8g 21k)": 0.0, "24k": 0.0, "21k": 0.0, "18k": 0.0},
+            "uae": {"Troy Ounce": 0.0, "24k": 0.0, "21k": 0.0, "18k": 0.0},
+            "error_detail": error_msg
+        }
+        return safe_data
 
 @app.get("/news", response_model=List[NewsItem])
 def get_news():

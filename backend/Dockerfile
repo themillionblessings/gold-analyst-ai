@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+ENV PYTHONUNBUFFERED=1
+
 # Install python dependencies
 # Copy backend-specific requirements from the build context (root)
 COPY backend/requirements.txt .
