@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from backend.services import GoldAnalystEngine, fetch_gold_price, fetch_market_news
+# Only import simple models at top level
 from backend.models import PriceResponse, NewsItem, AnalysisRequest, AnalysisResponse
 from typing import List, Dict, Any
 
@@ -15,16 +15,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ai_engine = GoldAnalystEngine()
-
-from sqlalchemy import text
-from backend.database import engine as db_engine
-
-# ... (existing imports)
+# NOTE: Database engine import moved to read_root to prevent crash if DB is not ready
+# but we keep it available for health check if possible, or lazy load it too.
+# For maximum safety, we lazy load EVERYTHING.
 
 @app.get("/")
 def read_root():
+    db_status = "Disconnected"
     try:
+        from sqlalchemy import text
+        from backend.database import engine as db_engine
         with db_engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         db_status = "Connected"
@@ -37,6 +37,9 @@ def read_root():
 def get_price(ticker: str):
     from fastapi.responses import JSONResponse
     try:
+        # Lazy import
+        from backend.services import fetch_gold_price
+        
         data = fetch_gold_price()
         # Validation check manually
         if data and "error" in data:
@@ -64,21 +67,27 @@ def get_price(ticker: str):
 
 @app.get("/news", response_model=List[NewsItem])
 def get_news():
-    return fetch_market_news()
+    try:
+        from backend.services import fetch_market_news
+        return fetch_market_news()
+    except Exception as e:
+        print(f"News Error: {e}")
+        return []
 
 @app.post("/analyze", response_model=AnalysisResponse)
 def analyze_market(request: AnalysisRequest):
-    # Helper to construct minimal dicts if full payload isn't provided
-    # But since we defined Any in request, we can pass it through if compatible
-    # The current engine expects gld_data and xau_data
-    
-    result = ai_engine.analyze(request.gld_data, request.xau_data)
-    
-    if result and "rationale_brief" in result:
-        return result
-    else:
-        # Fallback or error handling
-        raise HTTPException(status_code=500, detail="Analysis failed to generate valid output")
+    try:
+        from backend.services import GoldAnalystEngine
+        ai_engine = GoldAnalystEngine()
+        
+        result = ai_engine.analyze(request.gld_data, request.xau_data)
+        
+        if result and "rationale_brief" in result:
+            return result
+        else:
+            raise HTTPException(status_code=500, detail="Analysis failed to generate valid output")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
