@@ -22,15 +22,22 @@ interface PriceData {
 
 export default function Home() {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPrice() {
       try {
         const res = await fetch("/api/proxy/price/GC=F");
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Status: ${res.status} ${res.statusText} - ${text.substring(0, 100)}`);
+        }
         const json = await res.json();
         setPriceData(json);
+        setError(null);
       } catch (err) {
         console.error("Failed to fetch price data", err);
+        setError(err instanceof Error ? err.message : "Unknown Error");
       }
     }
     fetchPrice();
@@ -64,6 +71,14 @@ export default function Home() {
           </h1>
           <p className="text-slate-500 text-lg">Real-time gold tracking powered by Gemini 2.5 Flash.</p>
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-center">
+            <p className="font-bold">Connection Error</p>
+            <p className="text-sm">{error}</p>
+            <p className="text-xs mt-1 text-red-500">Check Render Logs: Frontend or Backend may be down.</p>
+          </div>
+        )}
 
         {/* Top Data Row: Price Card + Calculator */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
