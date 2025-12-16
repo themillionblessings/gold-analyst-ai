@@ -8,25 +8,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies
-COPY requirements.txt .
+# Copy backend-specific requirements from the build context (root)
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-# We copy everything into /app/backend to match the import structure "from backend.services..."
-# This assumes we run uvicorn from /app
-COPY . /app/backend
+# Copy backend source code structure
+COPY backend /app/backend
+# Also copy config if needed, or rely on env
+COPY config.yaml /app/config.yaml
 
-# Copy config.yaml if it exists in the root context, 
-# but since docker context is usually the root of the repo, we handle this in docker-compose 
-# or copy specifically. For now, let's assume we build from the backend dir context?
-# Wait, standard microservice pattern: build context is often the service dir.
-# But imports "from backend.services" imply we are running from parent of backend?
-# Let's adjust imports in main.py or adjust PYTHONPATH.
-# Actually, if we copy to /app/backend, and run from /app, "from backend.services" works.
+# Expose the port Render assigns (default 10000)
+# We don't strictly need EXPOSE but it documents it
+EXPOSE 10000
 
-# Expose port
-EXPOSE 8000
-
-# Run command
-# We run from /app, targeting backend.main:app
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run uvicorn using the PORT environment variable
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
