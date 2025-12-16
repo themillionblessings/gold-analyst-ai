@@ -19,6 +19,7 @@ jobs:
     - name: Run Tests
       env:
         PYTHONPATH: .
+        GOOGLE_API_KEY: dummy_key
       run: |
         pytest tests/
     - name: Lint with flake8
