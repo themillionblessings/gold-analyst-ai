@@ -1,6 +1,5 @@
 import yfinance as yf
-
-
+from langchain_community.tools import DuckDuckGoSearchRun
 import re
 
 def fetch_gold_price():
