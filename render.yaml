@@ -1,11 +1,11 @@
-services:
-  # 1. Database
-  - type: psql
-    name: gold-analyst-db
-    env: docker
+databases:
+  - name: gold-analyst-db
+    databaseName: gold_analyst
+    user: gold_user
     plan: free
 
-  # 2. Backend API
+services:
+  # 1. Backend API
   - type: web
     name: gold-analyst-backend
     env: docker
@@ -22,7 +22,7 @@ services:
         sync: false
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port 10000
 
-  # 3. Frontend Web Service
+  # 2. Frontend Web Service
   - type: web
     name: gold-analyst-frontend
     env: docker
