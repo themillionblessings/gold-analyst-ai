@@ -9,7 +9,11 @@ app = FastAPI(title="Gold Analyst AI API", version="2.0.0")
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost",
+        "https://gold-analyst-frontend.onrender.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
