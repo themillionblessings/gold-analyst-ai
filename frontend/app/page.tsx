@@ -7,6 +7,7 @@ import NewsFeed from "./components/NewsFeed";
 import MarketPrices from "./components/MarketPrices";
 import GoldCalculator from "./components/GoldCalculator";
 import DealAnalyzer from "./components/DealAnalyzer";
+import MarketMoodGauge from "./components/MarketMoodGauge";
 
 // Define the full price data interface matching backend
 interface PriceData {
@@ -80,6 +81,9 @@ export default function Home() {
             <p className="text-xs mt-1 text-red-500">Check Render Logs: Frontend or Backend may be down.</p>
           </div>
         )}
+
+        {/* Market Mood Engine */}
+        <MarketMoodGauge />
 
         {/* Top Data Row: Price Card + Calculator */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

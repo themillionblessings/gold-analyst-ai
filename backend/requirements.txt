@@ -11,3 +11,5 @@ langchain
 duckduckgo-search>=5.3.1
 psycopg2-binary
 sqlalchemy
+beautifulsoup4
+httpx

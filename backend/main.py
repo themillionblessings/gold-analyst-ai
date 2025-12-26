@@ -78,6 +78,22 @@ def get_news():
         print(f"News Error: {e}")
         return []
 
+# Persistent Sentiment Engine for caching
+sentiment_engine = None
+
+@app.get("/market-mood")
+async def get_market_mood():
+    global sentiment_engine
+    try:
+        if sentiment_engine is None:
+            from backend.services.sentiment import SentimentEngine
+            sentiment_engine = SentimentEngine()
+        
+        return await sentiment_engine.get_market_mood()
+    except Exception as e:
+        print(f"Market Mood Endpoint Error: {e}")
+        return {"sentiment_score": 50, "mood_label": "Neutral", "key_factors": ["Service temporarily unavailable"]}
+
 @app.post("/analyze", response_model=AnalysisResponse)
 def analyze_market(request: AnalysisRequest):
     try:
