@@ -34,7 +34,7 @@ class SentimentEngine:
             # 1. Fetch top 5 news URLs
             urls = []
             with DDGS() as ddgs:
-                results = list(ddgs.news(keywords="gold price market analysis", max_results=5))
+                results = list(ddgs.news(keywords="Gold Price News", max_results=5))
                 urls = [r['url'] for r in results if 'url' in r]
 
             if not urls:
@@ -49,11 +49,13 @@ class SentimentEngine:
 
             # 3. Analyze with Gemini
             prompt = f"""
-            Analyze the sentiment of the following news articles regarding Gold prices.
+            Analyze the following gold market news articles.
+            Your task is to provide a real-time sentiment analysis for gold prices.
+            
             Return a STRICT JSON object with these fields:
-            - sentiment_score: int (0 to 100, where 0 is extremely bearish and 100 is extremely bullish)
+            - sentiment_score: integer (0 to 100, where 0 is extremely bearish/fear and 100 is extremely bullish/greed)
             - mood_label: string (one of: 'Bearish', 'Neutral', 'Bullish')
-            - key_factors: list of strings (top 3-5 factors driving this sentiment)
+            - key_factors: list of exactly 3-5 strings (top factors driving this sentiment)
 
             Articles Content:
             {aggregated_text}
@@ -77,7 +79,7 @@ class SentimentEngine:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
+        async with httpx.AsyncClient(timeout=3.0, follow_redirects=True, headers=headers) as client:
             tasks = [self._fetch_content(client, url) for url in urls]
             return await asyncio.gather(*tasks)
 
