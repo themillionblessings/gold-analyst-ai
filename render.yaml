@@ -30,8 +30,8 @@ services:
     dockerContext: frontend
     dockerfilePath: frontend/Dockerfile
     envVars:
-      - key: API_URL
+      - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web
           name: gold-analyst-backend
-          property: hostport
+          property: url

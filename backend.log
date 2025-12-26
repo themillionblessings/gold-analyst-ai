@@ -449,3 +449,11 @@ Traceback (most recent call last):
     return _bootstrap._gcd_import(name[level:], package, level)
            ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 TypeError: Metaclasses with custom tp_new are not supported.
+WARNING:  StatReload detected changes in 'backend/main.py'. Reloading...
+INFO:     Started server process [16700]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [16700]

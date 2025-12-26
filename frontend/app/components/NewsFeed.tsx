@@ -13,7 +13,8 @@ export default function NewsFeed() {
     const [news, setNews] = useState<NewsItem[]>([]);
 
     useEffect(() => {
-        fetch("/api/proxy/news")
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        fetch(`${baseUrl}/news`)
             .then((res) => res.json())
             .then((data) => setNews(data))
             .catch((err) => console.error(err));

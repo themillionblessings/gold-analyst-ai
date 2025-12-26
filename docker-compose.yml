@@ -39,8 +39,8 @@ services:
 
   backend-api:
     build:
-      context: backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: gold-analyst-backend
     ports:
       - "8000:8000"
@@ -49,6 +49,7 @@ services:
       - ./config.yaml:/app/config.yaml
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/gold_analyst_dev?sslmode=disable
+      - PORT=8000
     env_file:
       - .env
     restart: unless-stopped

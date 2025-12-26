@@ -27,7 +27,8 @@ export default function Home() {
   useEffect(() => {
     async function fetchPrice() {
       try {
-        const res = await fetch("/api/proxy/price/GC=F");
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${baseUrl}/price/GC=F`);
         if (!res.ok) {
           const text = await res.text();
           throw new Error(`Status: ${res.status} ${res.statusText} - ${text.substring(0, 100)}`);

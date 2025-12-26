@@ -132,13 +132,19 @@ def fetch_gold_price() -> Dict[str, Any]:
     try:
         spot_ticker = yf.Ticker("GC=F")
         spot_data = spot_ticker.history(period="1d")
+        
+        # Fallback for weekends/holidays if 1d is empty
+        if spot_data.empty:
+            spot_data = spot_ticker.history(period="5d")
+            
         if not spot_data.empty:
             current_price_oz = spot_data['Close'].iloc[-1]
-            open_price_oz = spot_data['Open'].iloc[-1]
+            open_price_oz = spot_data['Open'].iloc[-1] if len(spot_data) > 0 else current_price_oz
             change_oz = current_price_oz - open_price_oz
-            percent_change = (change_oz / open_price_oz) * 100
+            percent_change = (change_oz / open_price_oz) * 100 if open_price_oz != 0 else 0
             source = "Live Futures (GC=F)"
-    except:
+    except Exception as e:
+        print(f"Error fetching gold price: {e}")
         pass
 
     if current_price_oz == 0:
@@ -157,13 +163,20 @@ def fetch_gold_price() -> Dict[str, Any]:
     try:
         forex_tickers = yf.Tickers("EGP=X AED=X")
         forex_data = forex_tickers.history(period="1d")
-        rate_egp = forex_data['Close']['EGP=X'].iloc[-1]
-    except:
+        
+        # Fallback for weekends
+        if forex_data.empty:
+            forex_data = forex_tickers.history(period="5d")
+            
+        if not forex_data.empty:
+            rate_egp = forex_data['Close']['EGP=X'].iloc[-1]
+            rate_aed = forex_data['Close']['AED=X'].iloc[-1]
+        else:
+            rate_egp = 50.5
+            rate_aed = 3.67
+    except Exception as e:
+        print(f"Error fetching forex rates: {e}")
         rate_egp = 50.5
-    
-    try:
-        rate_aed = forex_data['Close']['AED=X'].iloc[-1]
-    except:
         rate_aed = 3.67
 
     return {

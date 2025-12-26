@@ -26,7 +26,8 @@ export default function AnalysisBlock() {
                 xau_data: { price: 2600.00 }
             };
 
-            const res = await fetch("/api/proxy/analyze", {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${baseUrl}/analyze`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
