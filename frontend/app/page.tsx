@@ -71,7 +71,7 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900">
             Smart Market Intelligence
           </h1>
-          <p className="text-slate-500 text-lg">Real-time gold tracking powered by Gemini 2.5 Flash.</p>
+          <p className="text-slate-500 text-lg">Real-time gold tracking powered by AI.</p>
         </div>
 
         {error && (
