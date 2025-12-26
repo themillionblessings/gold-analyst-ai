@@ -10,7 +10,7 @@ from duckduckgo_search import DDGS
 class SentimentEngine:
     def __init__(self):
         self.api_key = os.getenv("GOOGLE_API_KEY")
-        self.model_name = "gemini-2.0-flash-exp" # Using latest for sentiment
+        self.model_name = "gemini-flash-latest" 
         self._cache = None
         self._cache_time = None
         self._cache_ttl = timedelta(minutes=15)
@@ -34,7 +34,7 @@ class SentimentEngine:
             # 1. Fetch top 5 news URLs
             urls = []
             with DDGS() as ddgs:
-                results = list(ddgs.news(keywords="gold price market sentiment", max_results=5))
+                results = list(ddgs.news(keywords="gold price market analysis", max_results=5))
                 urls = [r['url'] for r in results if 'url' in r]
 
             if not urls:
@@ -42,7 +42,7 @@ class SentimentEngine:
 
             # 2. Scrape content asynchronously
             contents = await self._scrape_urls(urls)
-            aggregated_text = "\n\n".join(contents)[:8000] # Cap text for Gemini
+            aggregated_text = "\n\n".join([c for c in contents if c.strip()])[:8000]
 
             if not aggregated_text.strip():
                 return self._fallback_response("Failed to retrieve content from news articles")

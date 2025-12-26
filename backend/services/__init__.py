@@ -27,8 +27,7 @@ import google.generativeai as genai
 class GoldAnalystEngine:
     def __init__(self):
         self.api_key = os.getenv("GOOGLE_API_KEY")
-        print(f"DEBUG: Loaded API Key: {self.api_key[:5]}... (Length: {len(self.api_key) if self.api_key else 0})")
-        self.model_name = "gemini-2.5-flash-preview-09-2025"
+        self.model_name = "gemini-flash-latest"
         
         if self.api_key:
             genai.configure(api_key=self.api_key)
