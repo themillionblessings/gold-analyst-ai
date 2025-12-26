@@ -29,6 +29,12 @@ services:
     rootDir: .
     dockerContext: frontend
     dockerfilePath: frontend/Dockerfile
+    buildArgs:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: gold-analyst-backend
+          property: url
     envVars:
       - key: NEXT_PUBLIC_API_URL
         fromService:
