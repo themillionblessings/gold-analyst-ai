@@ -8,20 +8,7 @@ from fastapi import File, UploadFile, Depends
 from sqlalchemy.orm import Session
 from backend.database import get_db
 
-app = FastAPI(title="Gold Analyst AI API", version="2.0.0")
-
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost",
-        "https://gold-analyst-frontend.onrender.com"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from contextlib import asynccontextmanager
 
 # Database initialization
 def init_db():
@@ -41,8 +28,13 @@ def init_db():
     except Exception as e:
         print(f"ERROR: Database initialization failed: {e}")
 
-# Run init_db on startup
-init_db()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run init_db on startup
+    init_db()
+    yield
+
+app = FastAPI(title="Gold Analyst AI API", version="2.0.0", lifespan=lifespan)
 
 @app.get("/")
 def read_root():

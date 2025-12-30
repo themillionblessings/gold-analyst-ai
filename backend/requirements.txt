@@ -13,3 +13,6 @@ psycopg2-binary
 sqlalchemy
 beautifulsoup4
 httpx
+pgvector
+pypdf
+python-multipart
