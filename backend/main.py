@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 # Only import simple models at top level
-from backend.models import PriceResponse, NewsItem, AnalysisRequest, AnalysisResponse
-from typing import List, Dict, Any
+from backend.models import PriceResponse, NewsItem, AnalysisRequest, AnalysisResponse, RagAskRequest, RagAskResponse
+from typing import List, Dict, Any, Optional
+from fastapi import File, UploadFile, Depends
+from sqlalchemy.orm import Session
+from backend.database import get_db
 
 app = FastAPI(title="Gold Analyst AI API", version="2.0.0")
 
@@ -19,9 +22,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# NOTE: Database engine import moved to read_root to prevent crash if DB is not ready
-# but we keep it available for health check if possible, or lazy load it too.
-# For maximum safety, we lazy load EVERYTHING.
+# Database initialization
+def init_db():
+    try:
+        from sqlalchemy import text
+        from backend.database import engine
+        with engine.connect() as conn:
+            # Create pgvector extension if we are on Postgres
+            if "postgresql" in str(engine.url):
+                conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                conn.commit()
+                # Create tables
+                from backend.database import Base
+                import backend.models # Ensure models are loaded
+                Base.metadata.create_all(bind=engine)
+                print("DEBUG: pgvector extension and tables verified/created")
+    except Exception as e:
+        print(f"ERROR: Database initialization failed: {e}")
+
+# Run init_db on startup
+init_db()
 
 @app.get("/")
 def read_root():
@@ -107,6 +127,48 @@ def analyze_market(request: AnalysisRequest):
         else:
             raise HTTPException(status_code=500, detail="Analysis failed to generate valid output")
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- RAG Endpoints ---
+
+rag_service = None
+
+@app.post("/rag/upload")
+async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    global rag_service
+    try:
+        if rag_service is None:
+            from backend.services.rag import RagService
+            rag_service = RagService()
+            
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+            
+        try:
+            chunks_created = rag_service.ingest_pdf(tmp_path, file.filename, db)
+            return {"message": f"Successfully ingested {file.filename}", "chunks": chunks_created}
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+    except Exception as e:
+        print(f"RAG Upload Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/rag/ask", response_model=RagAskResponse)
+async def ask_question(request: RagAskRequest, db: Session = Depends(get_db)):
+    global rag_service
+    try:
+        if rag_service is None:
+            from backend.services.rag import RagService
+            rag_service = RagService()
+            
+        result = rag_service.search_docs(request.question, db)
+        return result
+    except Exception as e:
+        print(f"RAG Ask Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
