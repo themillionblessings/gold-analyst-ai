@@ -35,26 +35,3 @@ class AnalysisResponse(BaseModel):
     suggested_risk_tier: str
     final_action: str
     position_size: str
-
-# --- RAG Models ---
-
-class RagAskRequest(BaseModel):
-    question: str
-
-class RagAskResponse(BaseModel):
-    answer: str
-    sources: List[str]
-
-# --- Database Models (SQLAlchemy) ---
-from sqlalchemy import Column, Integer, String, Text
-from pgvector.sqlalchemy import Vector
-from backend.database import Base
-
-class DocumentChunk(Base):
-    __tablename__ = "document_chunks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, index=True)
-    content = Column(Text)
-    # Gemini embeddings are 768 dimensions
-    embedding = Column(Vector(768))
