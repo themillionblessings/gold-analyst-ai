@@ -74,8 +74,13 @@ export default function GoldCalculator({ priceData }: { priceData: PriceData | n
                         <div className="text-sm text-slate-500 mb-1">Estimated Value</div>
                         <div className="text-4xl font-bold text-emerald-600 tracking-tight">
                             {market === "usd" ? "$" : market === "egypt" ? "EGP " : "AED "}
-                            {calculatedPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            {calculatedPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </div>
+                        {calculatedPrice > 0 && (
+                            <div className="text-[10px] font-bold text-emerald-500 mt-2 opacity-70 uppercase tracking-widest">
+                                ≈ {calculatedPrice >= 1000 ? calculatedPrice.toLocaleString(undefined, { maximumFractionDigits: 0 }) : calculatedPrice.toFixed(0)} ({market.toUpperCase()})
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

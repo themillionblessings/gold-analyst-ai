@@ -15,6 +15,14 @@ export default function DealAnalyzer({ priceData }: DealAnalyzerProps) {
 
     const [result, setResult] = useState<any>(null);
 
+    const getNumberWords = (val: number) => {
+        if (val === undefined || val === null || val === 0) return "";
+        if (val >= 1000000000) return `${(val / 1000000000).toFixed(2)} Billion`;
+        if (val >= 1000000) return `${(val / 1000000).toFixed(2)} Million`;
+        if (val >= 1000) return `${(val / 1000).toFixed(1)} Thousand`;
+        return val.toLocaleString();
+    };
+
     // Constants for thresholds
     const THRESHOLDS = {
         bullion: { great: 2.5, good: 5.0, fair: 9.0 },
@@ -157,14 +165,16 @@ export default function DealAnalyzer({ priceData }: DealAnalyzerProps) {
                     />
                 </div>
 
-                {/* Offer Price */}
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Offered Total Price</label>
                     <div className="relative">
                         <input
-                            type="number"
-                            value={offeredPrice || ""}
-                            onChange={(e) => setOfferedPrice(parseFloat(e.target.value))}
+                            type="text"
+                            value={offeredPrice ? offeredPrice.toLocaleString() : ""}
+                            onChange={(e) => {
+                                const val = Number(e.target.value.replace(/,/g, ""));
+                                if (!isNaN(val)) setOfferedPrice(val);
+                            }}
                             className="w-full bg-[#F5F5F7] border-0 rounded-xl pl-4 pr-16 py-3 text-lg font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none placeholder:text-slate-300"
                             placeholder="Total Cost"
                         />
@@ -172,6 +182,11 @@ export default function DealAnalyzer({ priceData }: DealAnalyzerProps) {
                             {market === "uae" ? "AED" : market === "egypt" ? "EGP" : "USD"}
                         </div>
                     </div>
+                    {offeredPrice > 0 && (
+                        <div className="text-[10px] font-bold text-blue-500 mt-1 uppercase tracking-tight ml-1">
+                            ≈ {getNumberWords(offeredPrice)}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -182,7 +197,7 @@ export default function DealAnalyzer({ priceData }: DealAnalyzerProps) {
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-500">Real Gold Value</span>
                         <span className="text-sm font-semibold text-slate-700">
-                            {result.intrinsicValue.toLocaleString(undefined, { maximumFractionDigits: 1 })} {result.currency}
+                            {result.intrinsicValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} {result.currency}
                         </span>
                     </div>
 
@@ -190,7 +205,7 @@ export default function DealAnalyzer({ priceData }: DealAnalyzerProps) {
                         <span className="text-sm text-slate-500">Premium Added</span>
                         <div className="text-right">
                             <span className={`block text-sm font-bold ${result.premiumAmount > 0 ? "text-red-500" : "text-green-500"}`}>
-                                {result.premiumAmount > 0 ? "+" : ""}{result.premiumAmount.toLocaleString(undefined, { maximumFractionDigits: 1 })} {result.currency}
+                                {result.premiumAmount > 0 ? "+" : ""}{result.premiumAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })} {result.currency}
                             </span>
                             <span className="text-xs text-slate-400">
                                 ({result.premiumPercent.toFixed(1)}%)
