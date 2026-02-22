@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from duckduckgo_search import DDGS
+import pandas as pd
 
 # Load config (assuming config.yaml is in the root or backend root, will handle path later)
 # For now, let's look for it in the parent directory or current directory
@@ -82,7 +83,11 @@ class GoldAnalystEngine:
             # check if system_instruction is supported, otherwise prepend
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
             
-            response = self.model.generate_content(full_prompt)
+            # Sanitize prompt before sending external request
+            from backend.utils.sanitizer import SovereignDataShield
+            sanitized_prompt = SovereignDataShield.redact_financials(full_prompt)
+            
+            response = self.model.generate_content(sanitized_prompt)
             content = response.text.strip()
             
             # Clean up standard markdown json
@@ -122,61 +127,93 @@ class GoldAnalystEngine:
             "position_size": "0.0%"
         }
 
+def fetch_scraped_egp_price():
+    """Fallback scraper for Egypt-specific 24k price."""
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        url = "https://www.goldpricez.com/eg/24k/gram"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Updated selector based on actual site structure
+        price_tag = soup.find(id='price_24K_Gram') or soup.find(id='base1')
+        if price_tag:
+            price_text = price_tag.text.strip()
+            return float(price_text.replace(',', ''))
+        return None
+    except Exception as e:
+        print(f"Scraper error: {e}")
+        return None
+
 def fetch_gold_price() -> Dict[str, Any]:
+    """
+    Fetches the current market data for Gold.
+    Priority 1: Gold Futures (GC=F) via yfinance.
+    Priority 2: Egypt-Specific Scraper for EGP accuracy.
+    """
     current_price_oz = 0
     change_oz = 0
     percent_change = 0
     source = "Market Data"
 
+    # Try 1: Gold Futures (GC=F)
     try:
         spot_ticker = yf.Ticker("GC=F")
         spot_data = spot_ticker.history(period="1d")
-        
-        # Fallback for weekends/holidays if 1d is empty
         if spot_data.empty:
             spot_data = spot_ticker.history(period="5d")
             
         if not spot_data.empty:
-            current_price_oz = spot_data['Close'].iloc[-1]
-            open_price_oz = spot_data['Open'].iloc[-1] if len(spot_data) > 0 else current_price_oz
+            current_price_oz = float(spot_data['Close'].iloc[-1])
+            open_price_oz = float(spot_data['Open'].iloc[-1]) if 'Open' in spot_data.columns else current_price_oz
             change_oz = current_price_oz - open_price_oz
             percent_change = (change_oz / open_price_oz) * 100 if open_price_oz != 0 else 0
-            source = "Live Futures (GC=F)"
+            source = "Live Futures"
     except Exception as e:
         print(f"Error fetching gold price: {e}")
-        pass
 
-    if current_price_oz == 0:
-        # Fallback logic simplified for backend (could invoke separate tools if needed)
-        # For simplicity, returning empty/zero if primary fails, similar to updated tools.py
-        pass
-
-    if current_price_oz == 0:
-        source = "Data Unavailable"
-        # Proceed with 0
-
-    price_gram_24k_usd = current_price_oz / 31.1034768
+    # Conversions
+    GRAMS_PER_OZ = 31.1034768
+    price_gram_24k_usd = current_price_oz / GRAMS_PER_OZ
     price_gram_18k_usd = price_gram_24k_usd * 0.75
     
-    # Forex
+    # Fetch Exchange Rates
     try:
         forex_tickers = yf.Tickers("EGP=X AED=X")
         forex_data = forex_tickers.history(period="1d")
-        
-        # Fallback for weekends
         if forex_data.empty:
             forex_data = forex_tickers.history(period="5d")
+        
+        try:
+            rate_egp = float(forex_data['Close']['EGP=X'].iloc[-1])
+        except: rate_egp = 50.5
             
-        if not forex_data.empty:
-            rate_egp = forex_data['Close']['EGP=X'].iloc[-1]
-            rate_aed = forex_data['Close']['AED=X'].iloc[-1]
-        else:
-            rate_egp = 50.5
-            rate_aed = 3.67
-    except Exception as e:
-        print(f"Error fetching forex rates: {e}")
+        try:
+            rate_aed = float(forex_data['Close']['AED=X'].iloc[-1])
+        except: rate_aed = 3.67
+    except:
         rate_egp = 50.5
         rate_aed = 3.67
+
+    # Calculate Egypt specific values (Override with Scraper if possible)
+    scraped_egp_24k = fetch_scraped_egp_price()
+    
+    if scraped_egp_24k:
+        # Use accurate regional price
+        egp_24k = scraped_egp_24k
+        source += " + Local Scrape"
+    else:
+        # Fallback to math
+        egp_24k = price_gram_24k_usd * rate_egp
+
+    egp_21k = egp_24k * (21/24)
+    egp_18k = egp_24k * (18/24)
+
+    # Ensure native types for JSON
+    current_price_oz = float(current_price_oz)
+    rate_egp = float(rate_egp)
+    rate_aed = float(rate_aed)
 
     return {
         "asset": f"Gold ({source})",
@@ -191,11 +228,11 @@ def fetch_gold_price() -> Dict[str, Any]:
             "18k": round(price_gram_18k_usd, 2)
         },
         "egypt": {
-            "Troy Ounce": round(current_price_oz * rate_egp, 2),
-            "Gold Coin (8g 21k)": round(price_gram_24k_usd * rate_egp * (21/24) * 8, 2),
-            "24k": round(price_gram_24k_usd * rate_egp, 2),
-            "21k": round(price_gram_24k_usd * rate_egp * (21/24), 2),
-            "18k": round(price_gram_18k_usd * rate_egp, 2)
+            "Troy Ounce": round(egp_24k * GRAMS_PER_OZ, 2),
+            "Gold Coin (8g 21k)": round(egp_21k * 8, 2),
+            "24k": round(egp_24k, 2),
+            "21k": round(egp_21k, 2),
+            "18k": round(egp_18k, 2)
         },
         "uae": {
             "Troy Ounce": round(current_price_oz * rate_aed, 2),

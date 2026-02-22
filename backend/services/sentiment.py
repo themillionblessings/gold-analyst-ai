@@ -48,6 +48,9 @@ class SentimentEngine:
                 return self._fallback_response("Failed to retrieve content from news articles")
 
             # 3. Analyze with Gemini
+            from backend.utils.sanitizer import SovereignDataShield
+            sanitized_text = SovereignDataShield.redact_financials(aggregated_text)
+            
             prompt = f"""
             Analyze the following gold market news articles.
             Your task is to provide a real-time sentiment analysis for gold prices.
@@ -58,7 +61,7 @@ class SentimentEngine:
             - key_factors: list of exactly 3-5 strings (top factors driving this sentiment)
 
             Articles Content:
-            {aggregated_text}
+            {sanitized_text}
             """
 
             response = self.model.generate_content(prompt)
