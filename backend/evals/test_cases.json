@@ -1,0 +1,39 @@
+[
+    {
+        "id": "tc-001",
+        "description": "Standard Egyptian Gold Bar (Fair Deal)",
+        "input_payload": {
+            "weight_grams": 20,
+            "offered_price_egp": 90000,
+            "market": "egypt",
+            "karat": "24k"
+        },
+        "expected_context": "The LLM should identify the offered price per gram (4500 EGP) compared to the spot fair value (approx 8250 EGP). The deal should be rated strictly as a FAIR DEAL or UNDERPRICED since the premium is significantly negative.",
+        "expected_math_values": {
+            "spot_price_floor_egp": 8000
+        }
+    },
+    {
+        "id": "tc-002",
+        "description": "Overpriced 21k Gold Ring",
+        "input_payload": {
+            "weight_grams": 5,
+            "offered_price_egp": 45000,
+            "market": "egypt",
+            "karat": "21k"
+        },
+        "expected_context": "The LLM should identify the offered price per gram (9000 EGP). This is significantly higher than the fair value of 21k gold on the black market rate. The deal should be rated strictly as OVERPRICED or A BAD DEAL, highlighting the high premium.",
+        "expected_math_values": {
+            "premium_percent_min": 5.0
+        }
+    },
+    {
+        "id": "tc-003",
+        "description": "Market Sentiment with Sovereignty Redaction",
+        "input_payload": {
+            "text": "User wants advice on investing 5,000,000 EGP into gold bullion."
+        },
+        "expected_context": "The LLM should process the redacted input (e.g. encountering [REDACTED_CAPITAL_TIER_3]) and still provide logically sound advice tailored to a high-net-worth or institutional investor, without breaking or complaining about missing data.",
+        "expected_math_values": {}
+    }
+]

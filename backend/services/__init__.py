@@ -8,6 +8,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from duckduckgo_search import DDGS
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Load config (assuming config.yaml is in the root or backend root, will handle path later)
 # For now, let's look for it in the parent directory or current directory
@@ -39,63 +43,78 @@ class GoldAnalystEngine:
         else:
             self.model = None
         
-    def analyze(self, gld_data: Dict[str, Any], xau_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze(self, gld_data: Dict[str, Any], xau_data: Dict[str, Any]) -> Dict[str, Any]:
         if not self.model:
             return self._mock_response("Error: Missing GOOGLE_API_KEY")
-            
+
+        # 1. Grounding: Fetch exact, audited live price via LangGraph Supervisor
+        try:
+            from backend.services.supervisor import gold_supervisor_app
+            initial_state = {"raw_price": None, "is_valid": False, "final_price": None, "source": "analysis-grounding", "error": None}
+            supervisor_res = await gold_supervisor_app.ainvoke(initial_state)
+            live_price = supervisor_res.get("final_price", xau_data.get("Troy Ounce", 0))
+            audited_source = supervisor_res.get("source", "manual-sync")
+        except Exception as e:
+            logger.error(f"Grounding Error (Supervisor): {e}")
+            live_price = xau_data.get("Troy Ounce", 0)
+            audited_source = "fallback"
+
+        # 2. Momentum Calculation: 14-day history
+        momentum_summary = "Unavailable"
+        try:
+            ticker = yf.Ticker("GC=F")
+            hist = ticker.history(period="14d")
+            if not hist.empty and len(hist) >= 2:
+                start_p = float(hist['Close'].iloc[0])
+                end_p = float(hist['Close'].iloc[-1])
+                pct_change = ((end_p - start_p) / start_p) * 100
+                momentum_summary = f"{pct_change:+.2f}% over last 14 sessions (Spot: ${live_price})"
+        except Exception as e:
+            logger.error(f"Grounding Error (Momentum): {e}")
+
         input_payload = {
             "timestamp_utc": gld_data.get("timestamp_utc"),
-            "assets": {
-                "GLD": gld_data,
-                "XAU": xau_data
-            },
-            "derived": {
-                "recent_trend_slope": 0.0,
-                "short_volatility": 0.0,
-                "notes": "Analyze based on price action and technicals."
-            },
-            "config": {
-                "risk_tiers": list(config.get("risk_tiers", {}).keys()),
-                "mapping_thresholds": config.get("mapping_thresholds", {})
+            "ground_truth": {
+                "live_audited_price": live_price,
+                "verified_source": audited_source,
+                "momentum_14d": momentum_summary
             }
         }
         
         system_prompt = """
-        You are an expert Gold Analyst AI.
-        Your task is to provide ultra-minimal Buy/Hold/Sell recommendations for Gold.
-        Tone: Ultra-minimal, direct, professional.
-        Output: STRICT JSON only.
-        Required Output Schema:
+        You are an elite quantitative commodities analyst. 
+        DO NOT use your general historical training data for current prices or trends. 
+        Base your technical analysis ONLY on the 'ground_truth' provided below.
+        
+        Tone: Ultra-minimal, direct, institutional.
+        Target JSON Schema:
         {
           "recommendation": "BUY|HOLD|SELL",
           "confidence": <float 0-100>,
           "rationale_brief": "One-line ultra-minimal explanation (max 20 words)",
-          "rationale_technical": "One short paragraph technical rationale (max 80 words)",
+          "rationale_technical": "Technical deep dive incorporating the 14-day momentum and audited spot price (max 80 words)",
           "suggested_risk_tier": "Conservative|Moderate|Aggressive"
         }
         """
         
-        user_prompt = f"Analyze this market data:\n{json.dumps(input_payload, indent=2)}"
+        user_prompt = f"Analyze this grounded market data:\n{json.dumps(input_payload, indent=2)}"
         
         try:
-            # Native API call
-            # Combine system and user prompt effectively or use system_instruction if available in newer lib
-            # check if system_instruction is supported, otherwise prepend
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
             
-            # Sanitize prompt before sending external request
+            # Sanitize prompt (PII Protection)
             from backend.utils.sanitizer import SovereignDataShield
             sanitized_prompt = SovereignDataShield.redact_financials(full_prompt)
             
             response = self.model.generate_content(sanitized_prompt)
             content = response.text.strip()
             
-            # Clean up standard markdown json
             if content.startswith("```json"): content = content[7:]
             if content.endswith("```"): content = content[:-3]
             
             output_json = json.loads(content.strip())
             
+            # Post-processing
             final_recommendation = self._map_recommendation(output_json)
             output_json["final_action"] = final_recommendation
             output_json["position_size"] = self._get_position_size(output_json.get("suggested_risk_tier"))
@@ -103,18 +122,19 @@ class GoldAnalystEngine:
             return output_json
             
         except Exception as e:
-            return self._mock_response(f"AI Error: {str(e)}")
+            return self._mock_response(f"AI Grounding Engine Error: {str(e)}")
 
     def _map_recommendation(self, output_json):
         rec = output_json.get("recommendation", "HOLD").upper()
         conf = float(output_json.get("confidence", 0))
-        thresholds = config.get("mapping_thresholds", {"confidence_buy": 60, "confidence_sell": 60})
-        if rec == "BUY" and conf >= thresholds["confidence_buy"]: return "BUY"
-        elif rec == "SELL" and conf >= thresholds["confidence_sell"]: return "SELL"
+        # Default thresholds
+        if rec == "BUY" and conf >= 60: return "BUY"
+        elif rec == "SELL" and conf >= 60: return "SELL"
         else: return "HOLD"
 
     def _get_position_size(self, tier):
-        return config.get("risk_tiers", {}).get(tier, "0.0%")
+        tiers = config.get("risk_tiers", {"Conservative": "1.0%", "Moderate": "3.0%", "Aggressive": "5.0%"})
+        return tiers.get(tier, "0.0%")
 
     def _mock_response(self, error_msg):
         return {

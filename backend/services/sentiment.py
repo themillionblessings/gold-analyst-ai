@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 import google.generativeai as genai
+from tenacity import retry, stop_after_attempt, wait_exponential
 from duckduckgo_search import DDGS
 
 class SentimentEngine:
@@ -86,6 +87,7 @@ class SentimentEngine:
             tasks = [self._fetch_content(client, url) for url in urls]
             return await asyncio.gather(*tasks)
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def _fetch_content(self, client: httpx.AsyncClient, url: str) -> str:
         try:
             resp = await client.get(url)

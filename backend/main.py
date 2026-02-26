@@ -2,9 +2,36 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 # Only import simple models at top level
 from backend.models import PriceResponse, NewsItem, AnalysisRequest, AnalysisResponse
-from typing import List, Dict, Any
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional
 
 app = FastAPI(title="Gold Analyst AI API", version="2.0.0")
+
+class ValidatedGoldResponse(BaseModel):
+    final_price: float = Field(..., description="The audited and verified gold price.")
+    source: str = Field(..., description="The data source ultimately used.")
+    anomaly_detected: bool = Field(..., description="True if primary source was rejected.")
+    system_note: Optional[str] = Field(None, description="Warnings from the Supervisor.")
+
+class GraphIngestRequest(BaseModel):
+    text: str = Field(..., description="News text to extract graph entities from.")
+
+@app.get("/api/v1/gold/validated-price", response_model=ValidatedGoldResponse)
+async def get_validated_gold_price():
+    from backend.services.supervisor import gold_supervisor_app
+    initial_state = {"raw_price": None, "is_valid": False, "final_price": None, "source": "unknown", "error": None}
+    try:
+        final_state = await gold_supervisor_app.ainvoke(initial_state)
+        if final_state.get("final_price") is None:
+            raise HTTPException(status_code=500, detail="Supervisor failed to secure a valid price.")
+        return ValidatedGoldResponse(
+            final_price=final_state["final_price"],
+            source=final_state["source"],
+            anomaly_detected=final_state.get("error") is not None,
+            system_note=final_state.get("error")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Graph Execution Error: {str(e)}")
 
 # CORS
 app.add_middleware(
@@ -95,12 +122,12 @@ async def get_market_mood():
         return {"sentiment_score": 50, "mood_label": "Neutral", "key_factors": ["Service temporarily unavailable"]}
 
 @app.post("/analyze", response_model=AnalysisResponse)
-def analyze_market(request: AnalysisRequest):
+async def analyze_market(request: AnalysisRequest):
     try:
         from backend.services import GoldAnalystEngine
         ai_engine = GoldAnalystEngine()
         
-        result = ai_engine.analyze(request.gld_data, request.xau_data)
+        result = await ai_engine.analyze(request.gld_data, request.xau_data)
         
         if result and "rationale_brief" in result:
             return result
@@ -108,6 +135,26 @@ def analyze_market(request: AnalysisRequest):
             raise HTTPException(status_code=500, detail="Analysis failed to generate valid output")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class NewsIngestRequest(BaseModel):
+    text: str
+
+@app.post("/api/v1/graph/ingest-news")
+async def ingest_news_to_graph(request: NewsIngestRequest):
+    from backend.services.graph_rag import KnowledgeGraphService
+    kg_service = KnowledgeGraphService()
+    try:
+        # Call your graph_rag service here
+        result = await kg_service.extract_and_store_entities(request.text)
+        await kg_service.close()
+        
+        if result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=result.get("message"))
+            
+        return {"status": "success", "nodes_created": result.get("nodes_processed", 0)}
+    except Exception as e:
+        await kg_service.close()
+        raise HTTPException(status_code=500, detail=f"Graph Ingestion Error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

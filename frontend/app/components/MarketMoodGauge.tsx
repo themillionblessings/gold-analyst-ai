@@ -9,9 +9,13 @@ interface MarketMood {
     error?: boolean;
 }
 
+import { useLanguage } from "../context/LanguageContext";
+import { TranslationKey } from "../contracts/translations";
+
 export default function MarketMoodGauge() {
     const [mood, setMood] = useState<MarketMood | null>(null);
     const [loading, setLoading] = useState(true);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const fetchMood = async () => {
@@ -32,7 +36,7 @@ export default function MarketMoodGauge() {
     if (loading) {
         return (
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm animate-pulse h-[250px] flex items-center justify-center">
-                <div className="text-slate-400">Gauging Market Sentiment...</div>
+                <div className="text-slate-400">{t('analyzing')}</div>
             </div>
         );
     }
@@ -49,19 +53,22 @@ export default function MarketMoodGauge() {
         return "#ef4444"; // rose-500
     };
 
+    // Safe translation for mood label
+    const translatedMoodLabel = t(mood.mood_label.toLowerCase() as TranslationKey) || mood.mood_label;
+
     return (
         <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
             <div className="flex flex-col items-center">
                 <div className="w-full flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">Market Mood</h2>
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Real-Time Analysis</p>
+                        <h2 className="text-xl font-bold text-slate-900">{t('marketMood')}</h2>
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">{t('realTimeAnalysis')}</p>
                     </div>
                     <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-sm ${mood.sentiment_score >= 70 ? 'bg-emerald-500 text-white' :
-                            mood.sentiment_score >= 40 ? 'bg-amber-500 text-white' :
-                                'bg-rose-500 text-white'
+                        mood.sentiment_score >= 40 ? 'bg-amber-500 text-white' :
+                            'bg-rose-500 text-white'
                         }`}>
-                        {mood.mood_label}
+                        {translatedMoodLabel}
                     </span>
                 </div>
 
@@ -112,23 +119,23 @@ export default function MarketMoodGauge() {
 
                 {/* Legend */}
                 <div className="w-full flex justify-between text-[10px] font-black uppercase tracking-tighter text-slate-400 px-8 mb-8">
-                    <span className="text-rose-400">Bearish</span>
-                    <span>Neutral</span>
-                    <span className="text-emerald-400">Bullish</span>
+                    <span className="text-rose-400">{t('bearish')}</span>
+                    <span>{t('neutral')}</span>
+                    <span className="text-emerald-400">{t('bullish')}</span>
                 </div>
 
                 {/* Key Factors as Bullets */}
                 <div className="w-full bg-slate-50 rounded-2xl p-6 border border-slate-100">
                     <h3 className="text-xs uppercase tracking-widest font-black text-slate-500 mb-4 flex items-center gap-2">
                         <span className="w-4 h-0.5 bg-slate-400"></span>
-                        Key Sentiment Factors
+                        {t('keyFactors')}
                     </h3>
                     <ul className="space-y-3">
                         {mood.key_factors.map((factor, idx) => (
                             <li key={idx} className="flex items-start gap-3">
                                 <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${mood.sentiment_score >= 70 ? 'bg-emerald-400' :
-                                        mood.sentiment_score >= 40 ? 'bg-amber-400' :
-                                            'bg-rose-400'
+                                    mood.sentiment_score >= 40 ? 'bg-amber-400' :
+                                        'bg-rose-400'
                                     }`}></div>
                                 <span className="text-sm font-medium text-slate-600 leading-relaxed italic">
                                     {factor}

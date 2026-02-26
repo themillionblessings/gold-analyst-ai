@@ -13,3 +13,7 @@ psycopg2-binary
 sqlalchemy
 beautifulsoup4
 httpx
+fastmcp
+langgraph
+tenacity
+neo4j
