@@ -136,25 +136,9 @@ async def analyze_market(request: AnalysisRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-class NewsIngestRequest(BaseModel):
-    text: str
-
-@app.post("/api/v1/graph/ingest-news")
-async def ingest_news_to_graph(request: NewsIngestRequest):
-    from backend.services.graph_rag import KnowledgeGraphService
-    kg_service = KnowledgeGraphService()
-    try:
-        # Call your graph_rag service here
-        result = await kg_service.extract_and_store_entities(request.text)
-        await kg_service.close()
-        
-        if result.get("status") == "error":
-            raise HTTPException(status_code=500, detail=result.get("message"))
-            
-        return {"status": "success", "nodes_created": result.get("nodes_processed", 0)}
-    except Exception as e:
-        await kg_service.close()
-        raise HTTPException(status_code=500, detail=f"Graph Ingestion Error: {str(e)}")
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "Gold Analyst Backend"}
 
 if __name__ == "__main__":
     import uvicorn

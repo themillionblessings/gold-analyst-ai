@@ -16,4 +16,3 @@ httpx
 fastmcp
 langgraph
 tenacity
-neo4j

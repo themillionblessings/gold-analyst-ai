@@ -37,17 +37,6 @@ services:
       timeout: 5s
       retries: 5
 
-  neo4j:
-    image: neo4j:5-community
-    container_name: gold-analyst-neo4j
-    ports:
-      - "7474:7474" # UI
-      - "7687:7687" # Bolt
-    environment:
-      - NEO4J_AUTH=neo4j/password123
-    volumes:
-      - neo4j_data:/data
-
   backend-api:
     build:
       context: .
@@ -86,4 +75,3 @@ services:
 
 volumes:
   postgres_data:
-  neo4j_data:

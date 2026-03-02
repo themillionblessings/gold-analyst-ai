@@ -1,6 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer
+} from "recharts";
 
 interface AnalysisResponse {
     recommendation: string;
@@ -9,6 +17,10 @@ interface AnalysisResponse {
     rationale_technical: string;
     suggested_risk_tier: string;
     final_action: string;
+    dynamic_ui?: {
+        component: string;
+        data: Array<{ date: string; price: number }>;
+    };
 }
 
 export default function AnalysisBlock() {
@@ -18,12 +30,12 @@ export default function AnalysisBlock() {
     const fetchAnalysis = async () => {
         setLoading(true);
         try {
-            // Hardcoded dummy payload for now as requested for MVP connectivity
+            // Updated payload to match backend requirements
             const payload = {
-                price: 2600.00,
-                change_percent: 1.5,
-                gld_data: { price: 245.00, timestamp_utc: new Date().toISOString() },
-                xau_data: { price: 2600.00 }
+                price: 0,
+                change_percent: 0,
+                gld_data: {},
+                xau_data: {}
             };
 
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -45,6 +57,54 @@ export default function AnalysisBlock() {
         if (action === "BUY") return "text-emerald-600 border-emerald-200 bg-emerald-50";
         if (action === "SELL") return "text-rose-600 border-rose-200 bg-rose-50";
         return "text-amber-600 border-amber-200 bg-amber-50";
+    };
+
+    const renderChart = () => {
+        if (!analysis?.dynamic_ui || analysis.dynamic_ui.component !== "TrendChart") return null;
+
+        const data = analysis.dynamic_ui.data;
+        if (!data || data.length === 0) return null;
+
+        const isUp = data[data.length - 1].price >= data[0].price;
+        const color = isUp ? "#10b981" : "#f43f5e"; // emerald-500 or rose-500
+        const gradientId = `colorPrice-${isUp ? "up" : "down"}`;
+
+        return (
+            <div className="mt-6 h-32 w-full animate-in fade-in duration-1000">
+                <div className="text-slate-400 text-[10px] uppercase tracking-widest font-bold mb-2">14-Day Momentum Sparkline</div>
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={color} stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <Tooltip
+                            contentStyle={{
+                                borderRadius: '12px',
+                                border: 'none',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                fontSize: '12px'
+                            }}
+                            labelStyle={{ display: 'none' }}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="price"
+                            stroke={color}
+                            strokeWidth={2}
+                            fillOpacity={1}
+                            fill={`url(#${gradientId})`}
+                            dot={false}
+                            isAnimationActive={true}
+                        />
+                        <XAxis dataKey="date" hide />
+                        <YAxis hide domain={['auto', 'auto']} />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+        );
     };
 
     return (
@@ -76,6 +136,9 @@ export default function AnalysisBlock() {
                             <div className="text-slate-500 text-xs uppercase tracking-wider font-semibold mb-1">Technical Deep Dive</div>
                             <div className="text-slate-600 text-sm leading-relaxed">{analysis.rationale_technical}</div>
                         </div>
+
+                        {renderChart()}
+
                         <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                             <span className="text-slate-500 text-sm">Risk Tier</span>
                             <span className="text-slate-700 font-medium bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">{analysis.suggested_risk_tier}</span>

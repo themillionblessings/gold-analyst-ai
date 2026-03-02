@@ -61,14 +61,23 @@ class GoldAnalystEngine:
 
         # 2. Momentum Calculation: 14-day history
         momentum_summary = "Unavailable"
+        historical_data_list = []
         try:
             ticker = yf.Ticker("GC=F")
             hist = ticker.history(period="14d")
-            if not hist.empty and len(hist) >= 2:
-                start_p = float(hist['Close'].iloc[0])
-                end_p = float(hist['Close'].iloc[-1])
-                pct_change = ((end_p - start_p) / start_p) * 100
-                momentum_summary = f"{pct_change:+.2f}% over last 14 sessions (Spot: ${live_price})"
+            if not hist.empty:
+                # Format history for frontend charting
+                for date, row in hist.iterrows():
+                    historical_data_list.append({
+                        "date": date.strftime("%m-%d"),
+                        "price": round(float(row['Close']), 2)
+                    })
+                
+                if len(hist) >= 2:
+                    start_p = float(hist['Close'].iloc[0])
+                    end_p = float(hist['Close'].iloc[-1])
+                    pct_change = ((end_p - start_p) / start_p) * 100
+                    momentum_summary = f"{pct_change:+.2f}% over last 14 sessions (Spot: ${live_price})"
         except Exception as e:
             logger.error(f"Grounding Error (Momentum): {e}")
 
@@ -118,6 +127,13 @@ class GoldAnalystEngine:
             final_recommendation = self._map_recommendation(output_json)
             output_json["final_action"] = final_recommendation
             output_json["position_size"] = self._get_position_size(output_json.get("suggested_risk_tier"))
+            
+            # Add dynamic UI payload
+            if historical_data_list:
+                output_json["dynamic_ui"] = {
+                    "component": "TrendChart",
+                    "data": historical_data_list
+                }
             
             return output_json
             

@@ -35,3 +35,4 @@ class AnalysisResponse(BaseModel):
     suggested_risk_tier: str
     final_action: str
     position_size: str
+    dynamic_ui: Optional[Dict[str, Any]] = None
